@@ -149,6 +149,15 @@ const Auth = () => {
               <TabsTrigger value="signup">User Signup</TabsTrigger>
               <TabsTrigger value="owner">Owner Signup</TabsTrigger>
             </TabsList>
+            <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 text-sm">
+  <p className="font-semibold mb-1">Demo Login</p>
+  <p>
+    <span className="font-medium">Email:</span> demo@gmail.com
+  </p>
+  <p>
+    <span className="font-medium">Password:</span> demo123
+  </p>
+</div>
 
             <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4">
