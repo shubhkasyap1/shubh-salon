@@ -1,0 +1,313 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SaloonBook API",
+    "version": "1.0.0",
+    "description": "Interactive API documentation for SaloonBook.\n\nCovers Edge Functions (custom serverless endpoints) and the auto-generated REST API (PostgREST) for database tables.\n\n**Base URL:** `https://xgzleiynbkkxhrwxrbzp.supabase.co`\n\n**Authentication:** Most endpoints require a Bearer JWT from the auth session, plus the `apikey` header set to the publishable anon key."
+  },
+  "servers": [
+    { "url": "https://xgzleiynbkkxhrwxrbzp.supabase.co", "description": "Production" }
+  ],
+  "tags": [
+    { "name": "Payments", "description": "Razorpay order creation and verification" },
+    { "name": "Bookings", "description": "Cancellation and status flows" },
+    { "name": "Notifications", "description": "Email and WhatsApp messaging" },
+    { "name": "REST: Saloons" },
+    { "name": "REST: Bookings" },
+    { "name": "REST: Services" },
+    { "name": "REST: Wallets" },
+    { "name": "REST: KYC" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
+      "apiKey": { "type": "apiKey", "in": "header", "name": "apikey" }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": { "error": { "type": "string" } }
+      },
+      "RazorpayOrderRequest": {
+        "type": "object",
+        "required": ["booking_id", "amount"],
+        "properties": {
+          "booking_id": { "type": "string", "format": "uuid" },
+          "amount": { "type": "number", "example": 499 },
+          "currency": { "type": "string", "example": "INR" }
+        }
+      },
+      "RazorpayOrderResponse": {
+        "type": "object",
+        "properties": {
+          "order_id": { "type": "string", "example": "order_NxYzAbCdEf1234" },
+          "amount": { "type": "integer", "example": 49900 },
+          "currency": { "type": "string", "example": "INR" },
+          "key_id": { "type": "string", "example": "rzp_test_XXXXXXXX" }
+        }
+      },
+      "VerifyPaymentRequest": {
+        "type": "object",
+        "required": ["razorpay_order_id", "razorpay_payment_id", "razorpay_signature", "booking_id"],
+        "properties": {
+          "razorpay_order_id": { "type": "string" },
+          "razorpay_payment_id": { "type": "string" },
+          "razorpay_signature": { "type": "string" },
+          "booking_id": { "type": "string", "format": "uuid" }
+        }
+      },
+      "CancelBookingRequest": {
+        "type": "object",
+        "required": ["booking_id"],
+        "properties": {
+          "booking_id": { "type": "string", "format": "uuid" },
+          "reason": { "type": "string", "example": "Change of plans" },
+          "refund_mode": { "type": "string", "enum": ["wallet", "razorpay"], "example": "wallet" }
+        }
+      },
+      "CancelBookingResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "refund_amount": { "type": "number" },
+          "refund_mode": { "type": "string" },
+          "new_wallet_balance": { "type": "number", "nullable": true }
+        }
+      },
+      "BookingNotificationRequest": {
+        "type": "object",
+        "required": ["booking_id"],
+        "properties": { "booking_id": { "type": "string", "format": "uuid" } }
+      },
+      "StatusEmailRequest": {
+        "type": "object",
+        "required": ["booking_id", "status"],
+        "properties": {
+          "booking_id": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["confirmed", "completed", "cancelled", "refunded"] }
+        }
+      },
+      "WhatsAppRequest": {
+        "type": "object",
+        "required": ["to", "message"],
+        "properties": {
+          "to": { "type": "string", "example": "+919999999999" },
+          "message": { "type": "string", "example": "Your booking is confirmed for 3:00 PM." },
+          "booking_id": { "type": "string", "format": "uuid", "nullable": true }
+        }
+      },
+      "Saloon": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "city": { "type": "string" },
+          "address": { "type": "string" },
+          "latitude": { "type": "number" },
+          "longitude": { "type": "number" },
+          "map_pin_url": { "type": "string" },
+          "owner_id": { "type": "string", "format": "uuid" },
+          "is_active": { "type": "boolean" }
+        }
+      },
+      "Booking": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "user_id": { "type": "string", "format": "uuid" },
+          "saloon_id": { "type": "string", "format": "uuid" },
+          "barber_id": { "type": "string", "format": "uuid", "nullable": true },
+          "booking_date": { "type": "string", "format": "date" },
+          "booking_time": { "type": "string", "example": "15:00" },
+          "status": { "type": "string", "enum": ["pending", "confirmed", "completed", "cancelled", "refunded"] },
+          "payment_status": { "type": "string" },
+          "total_amount": { "type": "number" }
+        }
+      },
+      "Service": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "saloon_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "price": { "type": "number" },
+          "duration_min": { "type": "integer" }
+        }
+      },
+      "Wallet": {
+        "type": "object",
+        "properties": {
+          "user_id": { "type": "string", "format": "uuid" },
+          "balance": { "type": "number" }
+        }
+      },
+      "KycSubmission": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "saloon_id": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+          "pan_number": { "type": "string" },
+          "gst_number": { "type": "string" },
+          "aadhaar_number": { "type": "string" },
+          "bank_account": { "type": "string" },
+          "ifsc_code": { "type": "string" }
+        }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [], "apiKey": [] }],
+  "paths": {
+    "/functions/v1/create-razorpay-order": {
+      "post": {
+        "tags": ["Payments"],
+        "summary": "Create a Razorpay order for a booking",
+        "description": "Creates a Razorpay order tied to a booking and returns the order details required by the client-side Razorpay checkout.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RazorpayOrderRequest" }, "example": { "booking_id": "b5f4a2c1-...", "amount": 499, "currency": "INR" } } }
+        },
+        "responses": {
+          "200": { "description": "Order created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RazorpayOrderResponse" } } } },
+          "400": { "description": "Invalid request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/functions/v1/verify-razorpay-payment": {
+      "post": {
+        "tags": ["Payments"],
+        "summary": "Verify a Razorpay payment signature",
+        "description": "Validates the HMAC signature returned by Razorpay, then marks the booking as paid and confirmed.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VerifyPaymentRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Payment verified", "content": { "application/json": { "example": { "success": true, "booking_id": "b5f4a2c1-..." } } } },
+          "400": { "description": "Invalid signature" }
+        }
+      }
+    },
+    "/functions/v1/cancel-booking": {
+      "post": {
+        "tags": ["Bookings"],
+        "summary": "Cancel a booking and issue a refund",
+        "description": "Cancels a booking, refunds either to the user's wallet (instant) or back to Razorpay (async), and triggers status notifications.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CancelBookingRequest" }, "example": { "booking_id": "b5f4a2c1-...", "reason": "Change of plans", "refund_mode": "wallet" } } }
+        },
+        "responses": {
+          "200": { "description": "Cancelled", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CancelBookingResponse" } } } },
+          "400": { "description": "Cannot cancel" }
+        }
+      }
+    },
+    "/functions/v1/send-booking-notification": {
+      "post": {
+        "tags": ["Notifications"],
+        "summary": "Notify the owner of a new booking (email)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BookingNotificationRequest" } } }
+        },
+        "responses": { "200": { "description": "Email queued" } }
+      }
+    },
+    "/functions/v1/send-booking-status-email": {
+      "post": {
+        "tags": ["Notifications"],
+        "summary": "Send booking status update email",
+        "description": "Sends a Resend-powered email to the customer and owner when a booking's status changes.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StatusEmailRequest" }, "example": { "booking_id": "b5f4a2c1-...", "status": "confirmed" } } }
+        },
+        "responses": { "200": { "description": "Email sent" } }
+      }
+    },
+    "/functions/v1/send-whatsapp": {
+      "post": {
+        "tags": ["Notifications"],
+        "summary": "Send a WhatsApp message via Twilio",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WhatsAppRequest" }, "example": { "to": "+919999999999", "message": "Booking confirmed at 3:00 PM." } } }
+        },
+        "responses": { "200": { "description": "Message sent", "content": { "application/json": { "example": { "success": true, "sid": "SMxxxx" } } } } }
+      }
+    },
+    "/rest/v1/saloons": {
+      "get": {
+        "tags": ["REST: Saloons"],
+        "summary": "List saloons",
+        "parameters": [
+          { "name": "select", "in": "query", "schema": { "type": "string", "example": "*" } },
+          { "name": "city", "in": "query", "schema": { "type": "string", "example": "eq.Delhi" } },
+          { "name": "is_active", "in": "query", "schema": { "type": "string", "example": "eq.true" } },
+          { "name": "order", "in": "query", "schema": { "type": "string", "example": "created_at.desc" } }
+        ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Saloon" } } } } } }
+      }
+    },
+    "/rest/v1/saloons?slug=eq.{slug}": {
+      "get": {
+        "tags": ["REST: Saloons"],
+        "summary": "Get saloon by slug",
+        "parameters": [{ "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Saloon" } } } } }
+      }
+    },
+    "/rest/v1/bookings": {
+      "get": {
+        "tags": ["REST: Bookings"],
+        "summary": "List bookings (RLS scoped to caller)",
+        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Booking" } } } } } }
+      },
+      "post": {
+        "tags": ["REST: Bookings"],
+        "summary": "Create a booking",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Booking" } } } },
+        "responses": { "201": { "description": "Created" } }
+      },
+      "patch": {
+        "tags": ["REST: Bookings"],
+        "summary": "Update a booking (filter via query params)",
+        "parameters": [{ "name": "id", "in": "query", "schema": { "type": "string", "example": "eq.<uuid>" } }],
+        "responses": { "204": { "description": "Updated" } }
+      }
+    },
+    "/rest/v1/services": {
+      "get": {
+        "tags": ["REST: Services"],
+        "summary": "List services",
+        "parameters": [{ "name": "saloon_id", "in": "query", "schema": { "type": "string", "example": "eq.<uuid>" } }],
+        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Service" } } } } } }
+      }
+    },
+    "/rest/v1/wallets": {
+      "get": {
+        "tags": ["REST: Wallets"],
+        "summary": "Get the caller's wallet balance",
+        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Wallet" } } } } }
+      }
+    },
+    "/rest/v1/wallet_transactions": {
+      "get": {
+        "tags": ["REST: Wallets"],
+        "summary": "List wallet transactions for the caller",
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/rest/v1/saloon_kyc_submissions": {
+      "get": { "tags": ["REST: KYC"], "summary": "List KYC submissions", "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/KycSubmission" } } } } } } },
+      "post": { "tags": ["REST: KYC"], "summary": "Submit KYC documents", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/KycSubmission" } } } }, "responses": { "201": { "description": "Created" } } }
+    },
+    "/rest/v1/saloon_kyc_reviews": {
+      "get": { "tags": ["REST: KYC"], "summary": "List admin KYC reviews", "responses": { "200": { "description": "OK" } } },
+      "post": { "tags": ["REST: KYC"], "summary": "Admin: create a review decision", "responses": { "201": { "description": "Created" } } }
+    }
+  }
+}
